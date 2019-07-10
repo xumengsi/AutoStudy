@@ -7,6 +7,7 @@ import com.xms.autostudy.configuration.RuleConfiguration;
 import com.xms.autostudy.constant.AutoStudyConstant;
 import com.xms.autostudy.exception.AutoStudyException;
 import com.xms.autostudy.exception.ErrorCode;
+import com.xms.autostudy.queue.StudyQueue;
 import com.xms.autostudy.response.AutoStudyResponse;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,6 +35,9 @@ public class AutoStudyStartController {
     @Autowired
     private Redis redis;
 
+    @Autowired
+    private StudyQueue studyQueue;
+
     @GetMapping(value="/autoStart")
     public AutoStudyResponse<String> autoStart(@RequestBody @Validated User user)throws IOException {
         //判断用户密码
@@ -45,14 +49,14 @@ public class AutoStudyStartController {
         //判断学习状态
         String newDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String userStudyKey = AutoStudyConstant.formatKey(AutoStudyConstant.USER_STUDY_STATUS, user.getUsername(), newDate);
-        String userStudyStatus = redis.get(userStudyKey);
-        if(StringUtils.isNotEmpty(userStudyStatus) && userStudyStatus.equals(StudyStatus.QUEUESTUDY.name())){
+        StudyQueue.QueueInfo queueInfo = studyQueue.getUserStudyStatus(userStudyKey);
+        if(queueInfo != null && queueInfo.getStatus().equals(StudyStatus.QUEUESTUDY.name())){
             throw new AutoStudyException(ErrorCode.E1000002);
         }
-        if(StringUtils.isNotEmpty(userStudyStatus) && userStudyStatus.equals(StudyStatus.STUDYING.name())){
+        if(queueInfo != null  && queueInfo.getStatus().equals(StudyStatus.STUDYING.name())){
             throw new AutoStudyException(ErrorCode.E1000003);
         }
-        if(StringUtils.isNotEmpty(userStudyStatus) && userStudyStatus.equals(StudyStatus.FILISH.name())){
+        if(queueInfo != null  && queueInfo.getStatus().equals(StudyStatus.FILISH.name())){
             throw new AutoStudyException(ErrorCode.E1000004);
         }
         //登录

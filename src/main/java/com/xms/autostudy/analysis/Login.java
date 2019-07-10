@@ -96,11 +96,11 @@ public class Login {
                     getFuture().cancel(true);
                 }
                 if (!webDriver.getCurrentUrl().equals(LOGIN_URL)) {
-                    log.info("扫码成功，执行学习强国自动加分策略......");
-                    AutoStudyInfoUtil.updateUserStudyStatus(username, StudyStatus.STUDYING);
                     Map<String, ScoreConfiguration> rules = ruleConfiguration.getRules();
                     String token = webDriver.manage().getCookieNamed("token").getValue();
                     String userId = AutoStudyInfoUtil.getUserId(token);
+                    log.info("扫码成功，执行学习强国自动加分策略......");
+                    AutoStudyInfoUtil.updateUserStudyStatus(userId, username, StudyStatus.STUDYING);
                     log.info("用户ID：{} ,令牌token：{}; 登录成功！！！", userId, token);
                     if (StringUtils.isNotEmpty(token)) {
                         log.info("每日登录得分已完成......");
@@ -230,7 +230,7 @@ public class Login {
         return isLoop;
     }
 
-    public abstract class FutureRunnable implements Runnable {
+    public abstract static class FutureRunnable implements Runnable {
 
         private Future<?> future;
 

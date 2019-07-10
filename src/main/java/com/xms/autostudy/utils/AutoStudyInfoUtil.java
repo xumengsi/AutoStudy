@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.xms.autostudy.analysis.StudyStatus;
 import com.xms.autostudy.configuration.Redis;
 import com.xms.autostudy.constant.AutoStudyConstant;
+import com.xms.autostudy.queue.StudyQueue;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.http.HttpEntity;
@@ -17,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 /**
  * xumengsi
@@ -67,12 +69,11 @@ public class AutoStudyInfoUtil {
         return Boolean.FALSE;
     }
 
-    public static void updateUserStudyStatus(String username, StudyStatus studyStatus){
-        Redis redis = SpringUtil.getBean(Redis.class);
+    public static void updateUserStudyStatus(String qiangguoId, String username, StudyStatus studyStatus){
+        StudyQueue studyQueue = SpringUtil.getBean(StudyQueue.class);
         String newDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = AutoStudyConstant.formatKey(AutoStudyConstant.USER_STUDY_STATUS, username, newDate);
-        redis.set(key, studyStatus.name());
-        redis.expire(key, 3600 * 24);
+        studyQueue.setUserStudyStatus(key, new StudyQueue.QueueInfo(username, qiangguoId, studyStatus.name(), new Date()));
     }
 
     /**
