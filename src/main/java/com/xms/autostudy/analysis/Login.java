@@ -7,6 +7,7 @@ import com.xms.autostudy.configuration.ScoreConfiguration;
 import com.xms.autostudy.rule.AutoReadRule;
 import com.xms.autostudy.rule.AutoVideoRule;
 import com.xms.autostudy.utils.AutoStudyInfoUtil;
+import com.xms.autostudy.utils.FileUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.slf4j.Logger;
@@ -29,6 +30,8 @@ public class Login {
 
     private static final Logger log = LoggerFactory.getLogger(Login.class);
 
+    private String username;
+
     private RuleConfiguration ruleConfiguration;
 
     private static final String LOGIN_KEY = "login";
@@ -46,8 +49,9 @@ public class Login {
 
     private static final String LOGIN_URL = "https://pc.xuexi.cn/points/login.html";
 
-    public Login(RuleConfiguration ruleConfiguration){
+    public Login(RuleConfiguration ruleConfiguration, String usernmae){
         this.ruleConfiguration = ruleConfiguration;
+        this.username = usernmae;
     }
 
     /**
@@ -55,8 +59,8 @@ public class Login {
      *
      * @return
      */
-    public File getQRcode() {
-        File result = null;
+    public String getQRcode() {
+        File file = null;
         AutoDriver autoDriver = new AutoDriver(ruleConfiguration);
         WebDriver webDriver = autoDriver.getDriver();
         JavascriptExecutor jsExecutor = autoDriver.getJSExecutor(webDriver);
@@ -64,22 +68,22 @@ public class Login {
             webDriver.get(LOGIN_URL);
             webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
             WebElement element = webDriver.findElement((By.id("ddlogin-iframe")));
-            result = element.getScreenshotAs(OutputType.FILE);
+            file = element.getScreenshotAs(OutputType.FILE);
         } catch (Exception e) {
             log.error("获取二维码失败，失败原因：{}", e.getMessage());
             webDriver.quit();
         }
-        autoContinue(webDriver, jsExecutor);
-        return result;
+        autoContinue(webDriver, jsExecutor, username);
+        return FileUtil.file2Base64(file);
     }
 
     /**
      * 执行自动加分
-     *
      * @param webDriver
      * @param jsExecutor
+     * @param username
      */
-    public void autoContinue(WebDriver webDriver, JavascriptExecutor jsExecutor) {
+    public void autoContinue(WebDriver webDriver, JavascriptExecutor jsExecutor, String username) {
         FutureRunnable runnable = new FutureRunnable() {
 
             long startTime = System.currentTimeMillis();
@@ -93,6 +97,7 @@ public class Login {
                 }
                 if (!webDriver.getCurrentUrl().equals(LOGIN_URL)) {
                     log.info("扫码成功，执行学习强国自动加分策略......");
+                    AutoStudyInfoUtil.updateUserStudyStatus(username, StudyStatus.STUDYING);
                     Map<String, ScoreConfiguration> rules = ruleConfiguration.getRules();
                     String token = webDriver.manage().getCookieNamed("token").getValue();
                     String userId = AutoStudyInfoUtil.getUserId(token);
@@ -136,7 +141,8 @@ public class Login {
      */
     public void autoAnalysis(WebDriver webDriver, JavascriptExecutor jsExecutor, Map<String, ScoreConfiguration> rules, String token, String userId) {
         List<AutoStudyInfoUtil.StudyCountryUserScore> userScoreList = AutoStudyInfoUtil.getUserScoreInfo(token);
-        log.info("用户ID：{} 当前得分详情： {}", userId, JSON.toJSONString(userScoreList));
+        Long userCurrentScore = userScoreList.stream().map(AutoStudyInfoUtil.StudyCountryUserScore::getCurrentScore).count();
+        log.info("用户ID：{} 当前得分： {}", userId, userCurrentScore);
         if (!CollectionUtils.isEmpty(userScoreList)) {
             userScoreList.forEach(userScore -> {
                 String ruleKey = null;

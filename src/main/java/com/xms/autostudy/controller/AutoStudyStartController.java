@@ -1,19 +1,27 @@
 package com.xms.autostudy.controller;
 
 import com.xms.autostudy.analysis.Login;
+import com.xms.autostudy.analysis.StudyStatus;
+import com.xms.autostudy.configuration.Redis;
 import com.xms.autostudy.configuration.RuleConfiguration;
+import com.xms.autostudy.constant.AutoStudyConstant;
+import com.xms.autostudy.exception.AutoStudyException;
+import com.xms.autostudy.exception.ErrorCode;
+import com.xms.autostudy.response.AutoStudyResponse;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
-import javax.imageio.ImageIO;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileInputStream;
+import javax.validation.constraints.NotEmpty;
 import java.io.IOException;
-import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 /**
  * xumengsi
  */
@@ -23,16 +31,45 @@ public class AutoStudyStartController {
     @Autowired
     private RuleConfiguration ruleConfiguration;
 
+    @Autowired
+    private Redis redis;
+
     @GetMapping(value="/autoStart")
-    public void autoStart(HttpServletRequest request, HttpServletResponse response)throws IOException {
-        response.setHeader("Pragma", "no-cache");
-        response.setHeader("Cache-Control", "no-cache");
-        response.setDateHeader("Expires", 0);
-        response.setContentType("image/png");
-        Login login = new Login(ruleConfiguration);
-        File file=login.getQRcode();
-        InputStream is=new FileInputStream(file);
-        BufferedImage bi= ImageIO.read(is);
-        ImageIO.write(bi, "PNG", response.getOutputStream());
+    public AutoStudyResponse<String> autoStart(@RequestBody @Validated User user)throws IOException {
+        //判断用户密码
+        String userNameKey = AutoStudyConstant.formatKey(AutoStudyConstant.USER_NAME_KEY, user.getUsername());
+        String password = redis.get(userNameKey);
+        if(StringUtils.isEmpty(password) || !user.getPassword().equals(password)){
+              throw new AutoStudyException(ErrorCode.E1000001);
+        }
+        //判断学习状态
+        String newDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String userStudyKey = AutoStudyConstant.formatKey(AutoStudyConstant.USER_STUDY_STATUS, user.getUsername(), newDate);
+        String userStudyStatus = redis.get(userStudyKey);
+        if(StringUtils.isNotEmpty(userStudyStatus) && userStudyStatus.equals(StudyStatus.QUEUESTUDY.name())){
+            throw new AutoStudyException(ErrorCode.E1000002);
+        }
+        if(StringUtils.isNotEmpty(userStudyStatus) && userStudyStatus.equals(StudyStatus.STUDYING.name())){
+            throw new AutoStudyException(ErrorCode.E1000003);
+        }
+        if(StringUtils.isNotEmpty(userStudyStatus) && userStudyStatus.equals(StudyStatus.FILISH.name())){
+            throw new AutoStudyException(ErrorCode.E1000004);
+        }
+        //登录
+        Login login = new Login(ruleConfiguration, user.getUsername());
+        String base64Str =login.getQRcode();
+        return AutoStudyResponse.success(base64Str);
+    }
+
+    @Getter
+    @Setter
+    public static class User{
+
+        @NotEmpty(message = "用户名不能为空")
+        private String username;
+
+        @NotEmpty(message = "密码不能为空")
+        private String password;
+
     }
 }
