@@ -7,8 +7,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.client.RestTemplate;
 
+@Order(Integer.MAX_VALUE - 1)
 @SpringBootApplication
 @EnableConfigurationProperties({RuleConfiguration.class})
 public class AutostudyApplication implements CommandLineRunner {

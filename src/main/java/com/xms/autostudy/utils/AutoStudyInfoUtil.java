@@ -5,10 +5,15 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.xms.autostudy.analysis.StudyStatus;
 import com.xms.autostudy.configuration.Redis;
+import com.xms.autostudy.configuration.ScoreConfiguration;
 import com.xms.autostudy.constant.AutoStudyConstant;
+import com.xms.autostudy.queue.DriverInfo;
+import com.xms.autostudy.queue.QueueInfo;
 import com.xms.autostudy.queue.StudyQueue;
 import lombok.Getter;
 import lombok.Setter;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,6 +25,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+
 /**
  * xumengsi
  */
@@ -73,7 +80,18 @@ public class AutoStudyInfoUtil {
         StudyQueue studyQueue = SpringUtil.getBean(StudyQueue.class);
         String newDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = AutoStudyConstant.formatKey(AutoStudyConstant.USER_STUDY_STATUS, username, newDate);
-        studyQueue.setUserStudyStatus(key, new StudyQueue.QueueInfo(username, qiangguoId, studyStatus.name(), new Date()));
+        studyQueue.setUserStudyStatus(key, new QueueInfo(username, qiangguoId, studyStatus.name(), new Date()));
+    }
+
+    public static void setUserStudyDriverInfo(WebDriver driver, JavascriptExecutor jsExecutor, Map<String, ScoreConfiguration> rules, String token, String qiangguoId, String username){
+        DriverInfo driverInfo = new DriverInfo(driver, jsExecutor, rules, token, qiangguoId, username);
+        StudyQueue studyQueue = SpringUtil.getBean(StudyQueue.class);
+        studyQueue.setUserStudyDriverInfo(qiangguoId, driverInfo);
+    }
+
+    public static void deleteUserStudyDriverInfo(String key){
+        StudyQueue studyQueue = SpringUtil.getBean(StudyQueue.class);
+        studyQueue.deleteUserStudyDriverInfo(key);
     }
 
     /**
