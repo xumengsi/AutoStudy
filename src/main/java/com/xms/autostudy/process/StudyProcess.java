@@ -108,7 +108,7 @@ public class StudyProcess {
      * 是否执行加分规则
      * @param userId 强国ID
      * @param userScore 得分详情
-     * @return
+     * @return 当天得分是否完成
      */
     private Boolean isNotExecute(String userId, AutoStudyInfoUtil.StudyCountryUserScore userScore) {
         if (userScore.getCurrentScore() != userScore.getDayMaxScore()) {

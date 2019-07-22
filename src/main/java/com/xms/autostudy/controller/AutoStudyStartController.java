@@ -14,10 +14,10 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.constraints.NotEmpty;
 import java.io.IOException;
@@ -27,7 +27,7 @@ import java.time.format.DateTimeFormatter;
 /**
  * xumengsi
  */
-@Controller
+@RestController
 public class AutoStudyStartController {
 
     @Autowired
@@ -46,7 +46,7 @@ public class AutoStudyStartController {
      * @throws IOException
      */
     @GetMapping(value="/autoStart")
-    public AutoStudyResponse<String> autoStart(@RequestBody @Validated User user)throws IOException {
+    public AutoStudyResponse<String> autoStart(@RequestBody @Validated User user) {
         //判断用户密码
         String userNameKey = AutoStudyConstant.formatKey(AutoStudyConstant.USER_NAME_KEY, user.getUsername());
         String password = redis.get(userNameKey);
