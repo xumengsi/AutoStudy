@@ -10,7 +10,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * Created by xumengsi on 2019-07-10 14:16
@@ -20,10 +19,10 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 
+
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.OK)
-    public AutoStudyResponse<?> excpetionHandler(HttpServletRequest request,
-                                                 MethodArgumentNotValidException exception) {
+    public AutoStudyResponse<?> excpetionHandler(MethodArgumentNotValidException exception) {
         log.error("MethodArgumentNotValidException Handler ", exception);
         AutoStudyResponse<?> response = new AutoStudyResponse<>();
         // 解析原错误信息，封装后返回，此处返回非法的字段名称，原始值，错误信息
@@ -31,12 +30,12 @@ public class GlobalExceptionHandler {
             return AutoStudyResponse.paramError(error.getDefaultMessage());
         }
         return response;
-    };
+    }
 
 
     @ExceptionHandler(value = AutoStudyException.class)
     @ResponseStatus(HttpStatus.OK)
-    public AutoStudyResponse<?> autoStudyExceptionHandler(HttpServletRequest request, AutoStudyException exception) {
+    public AutoStudyResponse<?> autoStudyExceptionHandler(AutoStudyException exception) {
         return AutoStudyResponse.fail(exception);
     }
 }

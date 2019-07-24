@@ -21,8 +21,6 @@ public class AutoReadRule extends AbstractAutoRule {
 
     private static final Logger log = LoggerFactory.getLogger(AutoReadRule.class);
 
-    private static String READ_URL = "https://www.xuexi.cn/lgdata/index.json?_st=%s";
-
     private static final String REGEX = "https://www.xuexi.cn/lgpage/detail/index.html[?]id=\\d{19}";
 
     private static Pattern pattern = Pattern.compile(REGEX);
@@ -44,6 +42,7 @@ public class AutoReadRule extends AbstractAutoRule {
         String userId = getUserId();
         String token = getToken();
         int ruleId = getRuleId();
+        String READ_URL = "https://www.xuexi.cn/lgdata/index.json?_st=%s";
         PageHandle.PageProcess pageProcess = new PageHandle.PageProcess(webDriver, jsExecutor, userId, READ_URL, pattern, AutoStudyConstant.USER_ISREAD, REGEX);
         PageHandle.start(pageProcess);
         this.execute(ruleId, webDriver, jsExecutor, token, userId);

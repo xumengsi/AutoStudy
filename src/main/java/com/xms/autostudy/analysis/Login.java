@@ -1,25 +1,15 @@
 package com.xms.autostudy.analysis;
 
-import com.alibaba.fastjson.JSON;
 import com.xms.autostudy.chromedriver.AutoDriver;
 import com.xms.autostudy.configuration.RuleConfiguration;
 import com.xms.autostudy.configuration.ScoreConfiguration;
-import com.xms.autostudy.queue.QueueInfo;
-import com.xms.autostudy.queue.StudyQueue;
-import com.xms.autostudy.rule.AutoReadRule;
-import com.xms.autostudy.rule.AutoVideoRule;
 import com.xms.autostudy.utils.AutoStudyInfoUtil;
 import com.xms.autostudy.utils.FileUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -37,18 +27,6 @@ public class Login {
 
     private RuleConfiguration ruleConfiguration;
 
-    private static final String LOGIN_KEY = "login";
-
-    private static final String READ_KEY = "read";
-
-    private static final String READ_TIME_KEY = "readTime";
-
-    private static final String VIDEO_KEY = "video";
-
-    private static final String VIDEO_TIME_KEY = "videoTime";
-
-    private Map<String, Boolean> AUTO_RESULT = new HashMap<String, Boolean>();
-
     private static final String LOGIN_URL = "https://pc.xuexi.cn/points/login.html";
 
     public Login(RuleConfiguration ruleConfiguration, String usernmae){
@@ -59,7 +37,7 @@ public class Login {
     /**
      * 获取登录二维码
      *
-     * @return
+     * @return 二维码
      */
     public String getQRcode() {
         File file = null;
