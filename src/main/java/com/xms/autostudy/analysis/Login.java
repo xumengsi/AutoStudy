@@ -1,12 +1,15 @@
 package com.xms.autostudy.analysis;
 
 import com.alibaba.fastjson.JSON;
-import com.xms.autostudy.chromedriver.AutoDriver;
 import com.xms.autostudy.configuration.RuleConfiguration;
 import com.xms.autostudy.configuration.ScoreConfiguration;
+import com.xms.autostudy.pool.AutoDriver;
+import com.xms.autostudy.pool.AutoDriverInterface;
+import com.xms.autostudy.pool.GenericAutoPool;
 import com.xms.autostudy.rule.AutoReadRule;
 import com.xms.autostudy.rule.AutoVideoRule;
 import com.xms.autostudy.utils.AutoStudyInfoUtil;
+import com.xms.autostudy.utils.SpringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.slf4j.Logger;
@@ -17,6 +20,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,7 +50,7 @@ public class Login {
 
     private static final String LOGIN_URL = "https://pc.xuexi.cn/points/login.html";
 
-    public Login(RuleConfiguration ruleConfiguration){
+    public Login(RuleConfiguration ruleConfiguration) {
         this.ruleConfiguration = ruleConfiguration;
     }
 
@@ -57,19 +61,22 @@ public class Login {
      */
     public File getQRcode() {
         File result = null;
-        AutoDriver autoDriver = new AutoDriver(ruleConfiguration);
-        WebDriver webDriver = autoDriver.getDriver();
-        JavascriptExecutor jsExecutor = autoDriver.getJSExecutor(webDriver);
+        GenericAutoPool<AutoDriverInterface> genericAutoPool = SpringUtil.getBean(GenericAutoPool.class);
+        AutoDriverInterface autoDriver = null;
+        WebDriver webDriver = null;
+        JavascriptExecutor jsExecutor = null;
         try {
-            webDriver.get(LOGIN_URL);
-            webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-            WebElement element = webDriver.findElement((By.id("ddlogin-iframe")));
-            result = element.getScreenshotAs(OutputType.FILE);
+            autoDriver = genericAutoPool.borrowObject();
+            webDriver = autoDriver.getWebDriver();
+            jsExecutor = autoDriver.getJavascriptExecutor();
         } catch (Exception e) {
-            log.error("获取二维码失败，失败原因：{}", e.getMessage());
-            webDriver.quit();
+            e.printStackTrace();
         }
-        autoContinue(webDriver, jsExecutor);
+        webDriver.get(LOGIN_URL);
+        webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        WebElement element = webDriver.findElement((By.id("ddlogin-iframe")));
+        result = element.getScreenshotAs(OutputType.FILE);
+        autoContinue(webDriver, jsExecutor, genericAutoPool, autoDriver);
         return result;
     }
 
@@ -79,7 +86,8 @@ public class Login {
      * @param webDriver
      * @param jsExecutor
      */
-    public void autoContinue(WebDriver webDriver, JavascriptExecutor jsExecutor) {
+    public void autoContinue(WebDriver webDriver, JavascriptExecutor jsExecutor, GenericAutoPool<AutoDriverInterface> genericAutoPool, AutoDriverInterface autoDriver) {
+
         FutureRunnable runnable = new FutureRunnable() {
 
             long startTime = System.currentTimeMillis();
@@ -88,7 +96,6 @@ public class Login {
             public void run() {
                 if (System.currentTimeMillis() > startTime + 240000) {
                     log.warn("扫码超时......");
-                    webDriver.quit();
                     getFuture().cancel(true);
                 }
                 if (!webDriver.getCurrentUrl().equals(LOGIN_URL)) {
@@ -107,11 +114,17 @@ public class Login {
                         e.printStackTrace();
                     } finally {
                         Boolean isLoop = isAutoStudyFinish(token);
-                        if(isLoop){
+                        if (isLoop) {
                             autoAnalysis(webDriver, jsExecutor, rules, token, userId);
-                        }else{
+                        } else {
                             log.info("用户ID：{} ,学习强国自动加分策略完成，退出模拟...", userId);
-                            webDriver.quit();
+                            Optional.ofNullable(autoDriver).ifPresent(x -> {
+                                try {
+                                    genericAutoPool.returnObject(x);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            });
                         }
                     }
                     getFuture().cancel(true);
@@ -166,6 +179,7 @@ public class Login {
 
     /**
      * 判断加分规则
+     *
      * @param ruleKey
      * @param webDriver
      * @param rules
@@ -195,6 +209,7 @@ public class Login {
 
     /**
      * 是否执行加分规则
+     *
      * @param userId
      * @param userScore
      * @return
@@ -208,7 +223,7 @@ public class Login {
     }
 
 
-    private Boolean isAutoStudyFinish(String token){
+    private Boolean isAutoStudyFinish(String token) {
         List<AutoStudyInfoUtil.StudyCountryUserScore> userScoreList = AutoStudyInfoUtil.getUserScoreInfo(token);
         Boolean isLoop = Boolean.FALSE;
         for (AutoStudyInfoUtil.StudyCountryUserScore x : userScoreList) {

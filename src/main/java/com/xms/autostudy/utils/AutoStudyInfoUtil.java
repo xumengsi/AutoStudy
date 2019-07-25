@@ -3,8 +3,13 @@ package com.xms.autostudy.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
+import com.xms.autostudy.pool.AutoDriver;
+import com.xms.autostudy.pool.AutoDriverInterface;
+import com.xms.autostudy.pool.GenericAutoPool;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.proxy.ProxiedObjectPool;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -13,6 +18,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+
 /**
  * xumengsi
  */
@@ -75,6 +82,26 @@ public class AutoStudyInfoUtil {
         HttpEntity<String> req = new HttpEntity<>(null, headers);
         ResponseEntity<StudyCountryPowerResponse> responseEntity = getRestTemplate().exchange(url, HttpMethod.GET, req, StudyCountryPowerResponse.class);
         return responseEntity;
+    }
+
+    public static AutoDriverInterface getAutoDriver(){
+        GenericAutoPool<AutoDriverInterface> genericAutoPool = SpringUtil.getBean(GenericAutoPool.class);
+        AutoDriverInterface autoDriver = null;
+        try {
+            autoDriver = genericAutoPool.borrowObject();
+            autoDriver.getWebDriver();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            Optional.ofNullable(autoDriver).ifPresent(x -> {
+                try {
+                    genericAutoPool.returnObject(x);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+        return autoDriver;
     }
 
     public static RestTemplate getRestTemplate(){

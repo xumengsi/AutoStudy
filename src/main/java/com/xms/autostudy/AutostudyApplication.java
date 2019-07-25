@@ -1,8 +1,6 @@
 package com.xms.autostudy;
 
 import com.xms.autostudy.configuration.RuleConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -11,10 +9,7 @@ import org.springframework.web.client.RestTemplate;
 
 @SpringBootApplication
 @EnableConfigurationProperties({RuleConfiguration.class})
-public class AutostudyApplication implements CommandLineRunner {
-
-    @Autowired
-    private RuleConfiguration ruleConfiguration;
+public class AutostudyApplication{
 
     public static void main(String[] args) {
         SpringApplication.run(AutostudyApplication.class, args);
@@ -25,14 +20,4 @@ public class AutostudyApplication implements CommandLineRunner {
         return new RestTemplate();
     }
 
-    /**
-     * Callback used to run the bean.
-     *
-     * @param args incoming main method arguments
-     * @throws Exception on error
-     */
-    @Override
-    public void run(String... args) throws Exception {
-        System.setProperty("webdriver.chrome.driver", ruleConfiguration.getChromeDriverAddress());
-    }
 }
